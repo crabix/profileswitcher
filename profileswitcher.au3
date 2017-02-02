@@ -17,6 +17,7 @@
 $AppName = "Outlook Profile Switcher"
 if WinExists($AppName) = "1" then Exit
 
+Dim $LastProfile
 Dim $Cnt,$Str
 
 Opt("WinTitleMatchMode", 2)
@@ -28,14 +29,14 @@ $Outlookcommand  = $OutlookPath & "outlook.exe /profile "
 $MainKey = "HKEY_CURRENT_USER\Software\Microsoft\Office\15.0\Outlook\Profiles\"
 
 ; ############################### Create Main Window
-$WinMain = GuiCreate($AppName,300,70,@DesktopWidth-300-100,@DesktopHeight-70-100)
-$List = GUICtrlCreateCombo("", 10,10,140,80, BitOR(  $LBS_STANDARD, $CBS_SORT))
+$WinMain = GuiCreate($AppName,235,70,@DesktopWidth-300-100,@DesktopHeight-70-100)
+$List = GUICtrlCreateCombo("", 10,10,140,80, BitOR($LBS_STANDARD,$CBS_SORT))
 GetProfiles()
 GetDefaultProfile()
 $SwitchButton = GuiCtrlCreateButton("Switch", 160,10, 65, 22)
-;$MainOptionsButton = GuiCtrlCreateButton($LangDispOpt[$lang], 230,10, 65, 22)
 $MainProfileDefault = GUICtrlCreateCheckbox ("Set as default profile", 10, 40, 130, 20)
-$LabelStatus = GUICtrlCreateLabel  ("", 150, 43, 220, 20)
+$LabelStatus = GUICtrlCreateLabel  ("lorem ipsum", 150, 43, 220, 20)
+$LabelAutoSwitch = GUICtrlCreateCheckbox  ("Auto Switch", 10, 60, 130, 20)
 
 
 ; ############################### Shows Main window
@@ -44,17 +45,12 @@ SplashOff()
 While 1
     $msg = GUIGetMsg(1)
     If $msg[0] = $SwitchButton Then DoSwitch()
-	If $msg[0] = $List Then
-		if GuiCtrlRead($OptAutoSwitch) = '1' Then
-		DoSwitch()
-		EndIf
-	EndIf
 
 	If $msg[0] = $GUI_EVENT_MINIMIZE Then GuiSetState(@SW_HIDE,$WinMain)
     If $msg[0] = $GUI_EVENT_CLOSE And $msg[1] = $WinMain  Then DoExit() ;ExitLoop
-	If $msg[0] = $GUI_EVENT_CLOSE And $msg[1] = $WinOptions  Then GUISetState(@SW_HIDE,$WinOptions) ;ExitLoop
-	;Get Tray
-
+    ;Show Gui
+	GuiSetState(@SW_SHOWNORMAL,$WinMain)
+;Get Tray
 $TrayMsg = TrayGetMsg()
     Select
         Case $TrayMsg = 0
@@ -64,6 +60,46 @@ $TrayMsg = TrayGetMsg()
 	EndSelect
 Wend
 
+;############################## Switch between Profiles
+Func DoSwitch()
+$PID = ProcessExists("OUTLOOK.EXE")
+	If $PID > 0 Then
+		$Outlookrunning = "1"
+	Else
+		$Outlookrunning = "0"
+	EndIf
+		if GuiCtrlRead($MainProfileDefault) = "1" Then
+			RegWrite($MainKey,"DefaultProfile","REG_SZ",GuiCtrlRead($List))
+		EndIf
+
+		$a=$Outlookcommand & chr(34) & GuiCtrlRead($List) & chr(34)
+		If $Outlookrunning = "1" Then
+			if GuiCtrlRead($List) <> $LastProfile Then
+				GUICtrlSetData($LabelStatus,"Wait, switching profile..")
+				GuiSetState(@SW_DISABLE,$WinMain) ; Turn the window off
+				OutlookClose()
+				run($a)
+				$LastProfile = GuiCtrlRead($List)
+				GuiSetState(@SW_ENABLE,$WinMain); Turns the window back on
+				GUICtrlSetData($LabelStatus,"")
+			Else
+				MsgBox(64,$AppName,"Profil bereits aktiv",10)
+			endif
+		Else
+			run($a)
+			$LastProfile = GuiCtrlRead($List)
+		EndIf
+EndFunc
+
+;############################## Close Outlook
+Func OutlookClose()
+	Do
+		$PID = ProcessExists("OUTLOOK.EXE")
+		run("taskkill /pid "&$PID,"",@SW_HIDE)
+		;ProcessClose($PID)
+		ProcessWaitClose($PID)
+	 Until $PID = 0
+  EndFunc
 
 ;############################## Reads Profiles from Registry
 Func GetProfiles()
@@ -84,7 +120,6 @@ if StringLen($DefaultKey)>0 Then
 	GUICtrlSetData($List,$DefaultKey)
 EndIf
 EndFunc
-
 
 ;############################## Exits application
 Func DoExit ()
