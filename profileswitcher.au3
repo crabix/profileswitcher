@@ -14,7 +14,7 @@
 #include <guiconstants.au3>
 #include <constants.au3>
 
-$AppName = "Outlook Profile Switcher"
+$AppName = "Profile Switcher"
 if WinExists($AppName) = "1" then Exit
 
 Dim $LastProfile
@@ -34,9 +34,7 @@ $List = GUICtrlCreateCombo("", 10,10,140,80, BitOR($LBS_STANDARD,$CBS_SORT))
 GetProfiles()
 GetDefaultProfile()
 $SwitchButton = GuiCtrlCreateButton("Switch", 160,10, 65, 22)
-$MainProfileDefault = GUICtrlCreateCheckbox ("Set as default profile", 10, 40, 130, 20)
-$LabelStatus = GUICtrlCreateLabel  ("lorem ipsum", 150, 43, 220, 20)
-$LabelAutoSwitch = GUICtrlCreateCheckbox  ("Auto Switch", 10, 60, 130, 20)
+$LabelStatus = GUICtrlCreateLabel  ("", 10, 43, 220, 20)
 
 
 ; ############################### Shows Main window
@@ -68,10 +66,6 @@ $PID = ProcessExists("OUTLOOK.EXE")
 	Else
 		$Outlookrunning = "0"
 	EndIf
-		if GuiCtrlRead($MainProfileDefault) = "1" Then
-			RegWrite($MainKey,"DefaultProfile","REG_SZ",GuiCtrlRead($List))
-		EndIf
-
 		$a=$Outlookcommand & chr(34) & GuiCtrlRead($List) & chr(34)
 		If $Outlookrunning = "1" Then
 			if GuiCtrlRead($List) <> $LastProfile Then
